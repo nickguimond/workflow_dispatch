@@ -1,0 +1,6 @@
+{
+  "tasks": {
+   "build": "deno compile --allow-read --allow-write --unstable-cron --unstable-kv --allow-env --allow-net --output dispatch main.ts",
+   "install": "sudo mv dispatch /usr/local/bin"
+  }
+}
