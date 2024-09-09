@@ -1,6 +1,30 @@
 import { parse } from "https://deno.land/std@0.200.0/flags/mod.ts";
 import type { Args } from "https://deno.land/std@0.200.0/flags/mod.ts";
 
+const kv = await Deno.openKv("/tmp/kv.db");
+
+const getter = async (key: string, question: string): Promise<string> => {
+  const value = (await kv.get([key])).value as string;
+  if (!value) {
+    const Answer = prompt(question) || '';
+    await kv.set([key], Answer);
+    return Answer;
+  } else {
+    return value;
+  }
+}
+
+export const getOwner = () => getter("owner", "Whos the owner of the repository?");
+
+export const getRepo = () => getter("repo", "Whats the repository name?");
+
+export const getWorkflowId = () => getter("workflow_id", "Whats the workflow id?");
+
+export const getRef = () => getter("ref", "Whats the branch or tag?");
+
+export const getInputs = () => getter("inputs", "Whats the inputs for the workflow?");
+
+
 export const log = (val: unknown) => {
   console.log(val);
 };
@@ -76,29 +100,17 @@ if (args.help) {
 }
 
 if (args.workflow) {
-  const owner = prompt(
-    "Whos the owner of the repository?",
-  ) || '';
-  const repo = prompt(
-    "Whats the repository name?",
-  ) || '';
-  const workflow_id = prompt(
-    "Whats the workflow id?",
-  ) || '';
-  const ref = prompt(
-    "Whats the branch or tag?",
-  ) || '';
-  const inputs = JSON.parse(
-    prompt(
-      "Whats the inputs for the workflow?",
-    ) || '{}',
-  );
+  const owner = await getOwner();
+  const repo = await getRepo();
+  const workflow_id = await getWorkflowId();
+  const ref = await getRef();
+  const inputs = await getInputs();
   await dispatchWorkflow({
     owner,
     repo,
     workflow_id,
     ref,
-    inputs
+    inputs: JSON.parse(inputs),
   });
   Deno.exit(0);
 }
