@@ -1,16 +1,25 @@
 import { parse } from "https://deno.land/std@0.200.0/flags/mod.ts";
 import type { Args } from "https://deno.land/std@0.200.0/flags/mod.ts";
-
 const kv = await Deno.openKv("/tmp/kv.db");
 
+const token = Deno.env.get("GITHUB_TOKEN");
+if (!token) {
+  throw new Error("GITHUB_TOKEN is not set.");
+}
+
 const getter = async (key: string, question: string): Promise<string> => {
-  const value = (await kv.get([key])).value as string;
-  if (!value) {
-    const Answer = prompt(question) || '';
-    await kv.set([key], Answer);
-    return Answer;
-  } else {
-    return value;
+  try {
+    const value = (await kv.get([key])).value as string;
+    if (!value) {
+      const Answer = prompt(question) || '';
+      await kv.set([key], Answer);
+      return Answer;
+    } else {
+      return value;
+    }
+  } catch (error) {
+    console.error("Error fetching from kv store: ", error);
+    throw error;
   }
 }
 
@@ -23,14 +32,6 @@ export const getWorkflowId = () => getter("workflow_id", "Whats the workflow id?
 export const getRef = () => getter("ref", "Whats the branch or tag?");
 
 export const getInputs = () => getter("inputs", "Whats the inputs for the workflow?");
-
-
-export const log = (val: unknown) => {
-  console.log(val);
-};
-export const JSONlog = (val: unknown) => {
-  console.log(JSON.stringify(val, null, 2));
-};
 
 export const parseArguments = (args: string[]): Args => {
   const booleanArgs = ["help", "workflow"];
@@ -55,11 +56,8 @@ const helpText = `
 
 `;
 export const printHelp = (): void => {
-  log(helpText);
+  console.log(helpText);
 };
-
-
-const token = Deno.env.get("GITHUB_TOKEN");
 
 const getHeaders = (type: string = "application/vnd.github.v3+json") => {
   const headers = new Headers();
